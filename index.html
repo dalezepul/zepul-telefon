@@ -50,6 +50,9 @@
   .ben { margin-left: auto; background: var(--vurgu2); color: #fff; border-bottom-right-radius: 4px; }
   .ben .ust { color: #dfe7ff; }
   .claude { background: var(--kart); border: 1px solid var(--cizgi); border-bottom-left-radius: 4px; }
+  .soruBalon { border-color: var(--vurgu2); border-left-width: 4px; }
+  .soruBalon .dugmeler { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .soruBalon .dugmeler button, .soruBalon .dugmeler a { padding: 7px 11px; font-size: 14px; }
   .santral { margin: 6px auto; background: transparent; color: var(--soluk); font-size: 13px; text-align: center; border: 1px dashed var(--cizgi); }
   .gun { text-align: center; color: var(--soluk); font-size: 12px; margin: 14px 0 4px; }
   .soru h2 { font-size: 18px; margin: 0 0 4px; }
@@ -112,7 +115,7 @@
 <script>
 "use strict";
 const NTFY = "https://ntfy.sh";
-const K = { bildirim: "zepul_claude", telefon: "zepul_claude_ntfy", durum: "zepul_claude_durum", cevap: "zepul_claude_cevap" };
+const K = { bildirim: "zepul_claude", soru: "zepul_claude_soru", telefon: "zepul_claude_ntfy", durum: "zepul_claude_durum", cevap: "zepul_claude_cevap" };
 const $ = (id) => document.getElementById(id);
 const el = (etiket, sinif, metin) => { const e = document.createElement(etiket); if (sinif) e.className = sinif; if (metin != null) e.textContent = metin; return e; };
 const saat = (sn) => new Date(sn * 1000).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
@@ -200,18 +203,38 @@ function balon(o) {
   gorulen.add(o.id);
   const g = gunAdi(o.time);
   if (g !== sonGun) { $("akis").append(el("div", "gun", g)); sonGun = g; }
-  const santral = o.topic === K.telefon && String(o.title || "").startsWith("Santral");
+  const soru = o.topic === K.soru;
+  const santral = !soru && o.topic === K.telefon && String(o.title || "").startsWith("Santral");
   const ben = o.topic === K.telefon && !santral;
-  const b = el("div", "balon " + (ben ? "ben" : santral ? "santral" : "claude"));
-  const ust = el("div", "ust", saat(o.time) + (santral ? " · santral" : ben ? " · sen" : ""));
+  const b = el("div", "balon " + (ben ? "ben" : santral ? "santral" : soru ? "claude soruBalon" : "claude"));
+  const ust = el("div", "ust", saat(o.time) + (santral ? " · santral" : ben ? " · sen" : soru ? " · soru" : ""));
   b.append(ust);
   if (!ben && !santral && o.title) b.append(el("div", "baslik", o.title));
   b.append(document.createTextNode(o.message || ""));
+  if (soru && Array.isArray(o.actions)) b.append(soruDugmeleri(o.actions));
   $("akis").append(b);
+}
+// Soru iletisinin ntfy eylemleri: http → "KOD: seçenek" cevap konusuna; view → soru sayfası.
+function soruDugmeleri(actions) {
+  const d = el("div", "dugmeler");
+  for (const a of actions) {
+    if (a.action === "http" && a.body && String(a.url || "").endsWith("/" + K.cevap)) {
+      const btn = el("button", "", a.label);
+      btn.onclick = async () => {
+        btn.disabled = true;
+        try { await yayinla(K.cevap, a.body); btn.textContent = a.label + " ✓"; }
+        catch (e) { btn.disabled = false; alert("Gönderilemedi: " + e.message); }
+      };
+      d.append(btn);
+    } else if (a.action === "view" && /^https:\/\//.test(a.url || "")) {
+      const l = el("a", "", a.label); l.href = a.url; d.append(l);
+    }
+  }
+  return d;
 }
 async function sohbetYukle() {
   try {
-    const m = await oku(`${K.bildirim},${K.telefon}`);
+    const m = await oku(`${K.bildirim},${K.soru},${K.telefon}`);
     baglantiDurum(true);
     m.sort((a, b) => a.time - b.time).forEach(balon);
     if (!m.length && !$("akis").children.length) $("akis").append(el("div", "bilgi", "Son 24 saatte ileti yok."));
@@ -240,7 +263,7 @@ $("sohbetMesaj").onkeydown = (e) => { if (e.key === "Enter") sohbetGonder(); };
 let es;
 function canli() {
   if (es || !("EventSource" in window)) return;
-  es = new EventSource(`${NTFY}/${K.bildirim},${K.telefon},${K.durum}/sse`);
+  es = new EventSource(`${NTFY}/${K.bildirim},${K.soru},${K.telefon},${K.durum}/sse`);
   es.onopen = () => baglantiDurum(true);
   es.onerror = () => baglantiDurum(false);
   es.onmessage = (ev) => {
