@@ -61,6 +61,15 @@
   .secenekler button { text-align: left; padding: 13px 14px; font-size: 16px; }
   .tamam { color: var(--yesil); font-weight: 600; margin-top: 12px; }
   .hata { color: var(--kirmizi); margin-top: 10px; font-size: 14px; }
+  .limit { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .limit .olcu .ad { font-size: 12px; color: var(--soluk); }
+  .limit .olcu .yuzde { font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .limit .cubuk { height: 5px; border-radius: 99px; background: var(--kart2); overflow: hidden; margin: 5px 0 3px; }
+  .limit .cubuk > i { display: block; height: 100%; background: var(--yesil); }
+  .limit .cubuk > i.sari { background: var(--sari); } .limit .cubuk > i.kirmizi { background: var(--kirmizi); }
+  .limit .sifir { font-size: 11px; color: var(--soluk); }
+  .limitAlt { grid-column: 1 / -1; font-size: 12px; color: var(--soluk); }
+  .limitAlt.bayat { color: var(--sari); }
 </style>
 </head>
 <body>
@@ -76,6 +85,7 @@
 </nav>
 <main>
   <section id="oturumlar">
+    <div class="kart limit gizli" id="limitKart" aria-label="Claude kullanım limiti"></div>
     <div class="bilgi" id="durumZaman">Oturum listesi yükleniyor…</div>
     <div id="liste"></div>
     <div class="kart gizli" id="yazKart">
@@ -158,8 +168,36 @@ async function durumYukle() {
       oturumlar = Array.isArray(d.oturumlar) ? d.oturumlar : [];
       $("durumZaman").textContent = `Güncelleme: ${saat(d.zaman || son.time)} · ${oturumlar.length} açık oturum`;
     }
+    // limit: santral her durum iletisine ekler; eski iletilerde yoksa limitli son iletiyi ara
+    const lim = m.map((x) => { try { return JSON.parse(x.message).limit; } catch { return null; } }).filter(Boolean).at(-1);
+    limitCiz(lim);
   } catch (e) { baglantiDurum(false); $("durumZaman").textContent = "Durum okunamadı: " + e.message; }
   listeCiz(); hedefCiz();
+}
+
+// ---------- limit kartı (santral: zepul_claude_durum → limit {s5, hafta, fable, s5_sifir, hafta_sifir, zaman, kaynak, bayat}) ----------
+function limitCiz(l) {
+  const k = $("limitKart");
+  if (!l) { k.classList.add("gizli"); return; }
+  k.classList.remove("gizli"); k.replaceChildren();
+  const sifirMetni = (sn) => {
+    if (!sn) return "";
+    const d = new Date(sn * 1000), fark = sn * 1000 - Date.now();
+    if (fark < 0) return "sıfırlandı";
+    return "sıfırlanma " + (fark < 20 * 3600e3 ? saat(sn) : d.toLocaleDateString("tr-TR", { weekday: "short" }) + " " + saat(sn));
+  };
+  for (const [ad, y, sn] of [["5 saat", l.s5, l.s5_sifir], ["Hafta", l.hafta, l.hafta_sifir], ["Fable hafta", l.fable, null]]) {
+    const o = el("div", "olcu");
+    o.append(el("div", "ad", ad), el("div", "yuzde", y == null ? "–" : `%${y}`));
+    const c = el("div", "cubuk"), i = el("i", y >= 90 ? "kirmizi" : y >= 70 ? "sari" : "");
+    i.style.width = `${Math.max(0, Math.min(100, y ?? 0))}%`;
+    c.append(i); o.append(c, el("div", "sifir", sifirMetni(sn)));
+    k.append(o);
+  }
+  const KAYNAK = { canli: "canlı", gozlem: "durum satırı", "yerel-onbellek": "yerel önbellek", "son-canli": "son canlı" };
+  const alt = el("div", "limitAlt" + (l.bayat ? " bayat" : ""),
+    `Ölçüm ${l.zaman ? saat(l.zaman) : "?"} · ${KAYNAK[l.kaynak] || l.kaynak || "kaynak yok"}${l.bayat ? " · bayat, karar için kullanılmaz" : ""}`);
+  k.append(alt);
 }
 function listeCiz() {
   const l = $("liste"); l.replaceChildren();
