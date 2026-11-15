@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14161c">
+<meta name="color-scheme" content="dark">
+<title>Zepul Telefon</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="ikon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="ikon-192.png">
+<style>
+  :root {
+    --zemin: #14161c; --kart: #1d2029; --kart2: #252935; --cizgi: #2e3340; --yazi: #e8eaf0; --soluk: #9aa1b2;
+    --vurgu: #7aa2ff; --vurgu2: #5b83e6; --yesil: #4cc38a; --sari: #e6b450; --kirmizi: #ef6b6b;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--zemin); color: var(--yazi); height: 100%; }
+  body { display: flex; flex-direction: column; min-height: 100dvh; -webkit-tap-highlight-color: transparent; }
+  header { display: flex; align-items: center; gap: 10px; padding: calc(10px + env(safe-area-inset-top)) 14px 10px; border-bottom: 1px solid var(--cizgi); }
+  header h1 { font-size: 17px; margin: 0; flex: 1; font-weight: 650; }
+  #baglanti { width: 9px; height: 9px; border-radius: 50%; background: var(--soluk); }
+  #baglanti.acik { background: var(--yesil); } #baglanti.kapali { background: var(--kirmizi); }
+  nav { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--cizgi); }
+  nav button { flex: 1; }
+  main { flex: 1; overflow: auto; padding: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  button { font: inherit; color: var(--yazi); background: var(--kart2); border: 1px solid var(--cizgi); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+  button:active { transform: scale(.98); }
+  button.secili, button.ana { background: var(--vurgu2); border-color: var(--vurgu2); color: #fff; }
+  button:disabled { opacity: .5; }
+  textarea, input { font: inherit; width: 100%; color: var(--yazi); background: var(--kart); border: 1px solid var(--cizgi); border-radius: 10px; padding: 10px 12px; }
+  textarea { resize: vertical; min-height: 84px; }
+  .gizli { display: none !important; }
+  .kart { background: var(--kart); border: 1px solid var(--cizgi); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
+  .oturum { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .oturum .ad { font-weight: 600; font-size: 16px; }
+  .oturum .klasor { color: var(--soluk); font-size: 13px; }
+  .rozet { margin-left: auto; font-size: 12px; padding: 3px 9px; border-radius: 99px; background: var(--kart2); color: var(--soluk); white-space: nowrap; }
+  .rozet.bosta { color: var(--yesil); } .rozet.mesgul { color: var(--sari); }
+  .bilgi { color: var(--soluk); font-size: 13px; margin: 6px 2px 12px; }
+  .satir { display: flex; gap: 8px; margin-top: 8px; }
+  .satir > * { flex: 1; }
+  .yazici { position: sticky; bottom: 0; background: var(--zemin); padding-top: 8px; }
+  .hedefler { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; }
+  .hedefler button { flex: none; padding: 6px 10px; font-size: 13px; border-radius: 99px; }
+  .balon { max-width: 88%; padding: 8px 11px; border-radius: 14px; margin: 6px 0; white-space: pre-wrap; word-wrap: break-word; line-height: 1.35; }
+  .balon .ust { font-size: 11px; color: var(--soluk); margin-bottom: 3px; }
+  .balon .baslik { font-weight: 600; }
+  .ben { margin-left: auto; background: var(--vurgu2); color: #fff; border-bottom-right-radius: 4px; }
+  .ben .ust { color: #dfe7ff; }
+  .claude { background: var(--kart); border: 1px solid var(--cizgi); border-bottom-left-radius: 4px; }
+  .santral { margin: 6px auto; background: transparent; color: var(--soluk); font-size: 13px; text-align: center; border: 1px dashed var(--cizgi); }
+  .gun { text-align: center; color: var(--soluk); font-size: 12px; margin: 14px 0 4px; }
+  .soru h2 { font-size: 18px; margin: 0 0 4px; }
+  .soru .metin { font-size: 16px; margin: 8px 0 14px; white-space: pre-wrap; }
+  .secenekler { display: grid; gap: 8px; }
+  .secenekler button { text-align: left; padding: 13px 14px; font-size: 16px; }
+  .tamam { color: var(--yesil); font-weight: 600; margin-top: 12px; }
+  .hata { color: var(--kirmizi); margin-top: 10px; font-size: 14px; }
+</style>
+</head>
+<body>
+<header>
+  <span id="baglanti" title="bağlantı"></span>
+  <h1>Zepul Telefon</h1>
+  <button id="yenile" title="Yenile" aria-label="Yenile">↻</button>
+</header>
+<nav id="sekmeler">
+  <button data-sekme="oturumlar" class="secili">Oturumlar</button>
+  <button data-sekme="sohbet">Sohbet</button>
+  <button data-sekme="soru" class="gizli">Soru</button>
+</nav>
+<main>
+  <section id="oturumlar">
+    <div class="bilgi" id="durumZaman">Oturum listesi yükleniyor…</div>
+    <div id="liste"></div>
+    <div class="kart gizli" id="yazKart">
+      <div class="bilgi" style="margin-top:0">Hedef: <b id="hedefAd"></b></div>
+      <textarea id="oturumMesaj" placeholder="Mesaj yaz…"></textarea>
+      <div class="satir"><button id="vazgec">Vazgeç</button><button class="ana" id="oturumGonder">Gönder</button></div>
+      <div id="oturumSonuc"></div>
+    </div>
+    <div class="satir"><button id="hepsiBtn">Hepsine yaz</button><button id="listeIste">Santralden liste iste</button></div>
+  </section>
+
+  <section id="sohbet" class="gizli">
+    <div class="bilgi">Son 24 saat: Claude bildirimleri ve telefondan yazılanlar.</div>
+    <div id="akis"></div>
+    <div class="yazici">
+      <div class="hedefler" id="hedefler"></div>
+      <div class="satir" style="margin-top:0">
+        <input id="sohbetMesaj" placeholder="ad: mesaj  ·  hepsi: mesaj  ·  liste" autocomplete="off">
+        <button class="ana" id="sohbetGonder" style="flex:none">Gönder</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="soru" class="gizli soru">
+    <div class="kart">
+      <div class="bilgi" id="soruBaslik" style="margin-top:0"></div>
+      <h2 id="soruMetin"></h2>
+      <div class="bilgi" id="soruIpucu"></div>
+      <div class="secenekler" id="soruSecenekler"></div>
+      <div class="satir"><input id="soruSerbest" placeholder="ya da kendin yaz…"></div>
+      <div class="satir"><button class="ana" id="soruGonder">Gönder</button></div>
+      <div id="soruSonuc"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const NTFY = "https://ntfy.sh";
+const K = { bildirim: "zepul_claude", telefon: "zepul_claude_ntfy", durum: "zepul_claude_durum", cevap: "zepul_claude_cevap" };
+const $ = (id) => document.getElementById(id);
+const el = (etiket, sinif, metin) => { const e = document.createElement(etiket); if (sinif) e.className = sinif; if (metin != null) e.textContent = metin; return e; };
+const saat = (sn) => new Date(sn * 1000).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+const gunAdi = (sn) => new Date(sn * 1000).toLocaleDateString("tr-TR", { weekday: "long", day: "numeric", month: "long" });
+
+async function yayinla(konu, metin) {
+  const r = await fetch(`${NTFY}/${konu}`, { method: "POST", body: metin });
+  if (!r.ok) throw new Error(`ntfy ${r.status}`);
+}
+async function oku(konular, since = "24h") {
+  const r = await fetch(`${NTFY}/${konular}/json?poll=1&since=${since}`);
+  if (!r.ok) throw new Error(`ntfy ${r.status}`);
+  return (await r.text()).split("\n").filter(Boolean).map((s) => { try { return JSON.parse(s); } catch { return null; } })
+    .filter((o) => o && o.event === "message");
+}
+function baglantiDurum(ok) { $("baglanti").className = ok ? "acik" : "kapali"; }
+
+// ---------- sekmeler ----------
+function sekmeAc(ad) {
+  for (const b of document.querySelectorAll("#sekmeler button")) b.classList.toggle("secili", b.dataset.sekme === ad);
+  for (const s of ["oturumlar", "sohbet", "soru"]) $(s).classList.toggle("gizli", s !== ad);
+  if (ad === "sohbet") { sohbetYukle(); setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 50); }
+  if (ad === "oturumlar") durumYukle();
+}
+for (const b of document.querySelectorAll("#sekmeler button")) b.onclick = () => {
+  if (b.dataset.sekme !== "soru" && location.hash.startsWith("#soru")) history.replaceState(null, "", location.pathname);
+  sekmeAc(b.dataset.sekme);
+};
+
+// ---------- oturumlar ----------
+let oturumlar = [], hedef = null;
+async function durumYukle() {
+  try {
+    const m = await oku(K.durum);
+    baglantiDurum(true);
+    const son = m.at(-1);
+    if (!son) { oturumlar = []; $("durumZaman").textContent = "Son 24 saatte durum bilgisi yok (santral kapalı olabilir)."; }
+    else {
+      const d = JSON.parse(son.message);
+      oturumlar = Array.isArray(d.oturumlar) ? d.oturumlar : [];
+      $("durumZaman").textContent = `Güncelleme: ${saat(d.zaman || son.time)} · ${oturumlar.length} açık oturum`;
+    }
+  } catch (e) { baglantiDurum(false); $("durumZaman").textContent = "Durum okunamadı: " + e.message; }
+  listeCiz(); hedefCiz();
+}
+function listeCiz() {
+  const l = $("liste"); l.replaceChildren();
+  if (!oturumlar.length) { l.append(el("div", "bilgi", "Açık oturum yok.")); return; }
+  for (const o of oturumlar) {
+    const k = el("div", "kart oturum");
+    const sol = el("div");
+    sol.append(el("div", "ad", o.ad));
+    if (o.klasor && o.klasor !== o.ad) sol.append(el("div", "klasor", o.klasor));
+    k.append(sol, el("span", "rozet " + (o.durum || ""), o.durum === "bosta" ? "boşta" : o.durum === "mesgul" ? "meşgul" : "?"));
+    k.onclick = () => yazAc(o.ad);
+    l.append(k);
+  }
+}
+function yazAc(ad) {
+  hedef = ad; $("hedefAd").textContent = ad === "hepsi" ? "tüm oturumlar" : ad;
+  $("yazKart").classList.remove("gizli"); $("oturumSonuc").replaceChildren();
+  $("oturumMesaj").focus();
+  $("yazKart").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+$("vazgec").onclick = () => { $("yazKart").classList.add("gizli"); hedef = null; };
+$("hepsiBtn").onclick = () => yazAc("hepsi");
+$("oturumGonder").onclick = async () => {
+  const m = $("oturumMesaj").value.trim();
+  if (!m || !hedef) return;
+  const b = $("oturumGonder"); b.disabled = true;
+  try {
+    await yayinla(K.telefon, `${hedef}: ${m}`);
+    $("oturumMesaj").value = "";
+    $("oturumSonuc").replaceChildren(el("div", "tamam", "Gönderildi ✓ (onay Sohbet'te görünür)"));
+  } catch (e) { $("oturumSonuc").replaceChildren(el("div", "hata", "Gönderilemedi: " + e.message)); }
+  b.disabled = false;
+};
+$("listeIste").onclick = async () => { try { await yayinla(K.telefon, "liste"); sekmeAc("sohbet"); } catch (e) { alert("Gönderilemedi: " + e.message); } };
+
+// ---------- sohbet ----------
+const gorulen = new Set();
+let sonGun = "";
+function balon(o) {
+  if (gorulen.has(o.id)) return;
+  gorulen.add(o.id);
+  const g = gunAdi(o.time);
+  if (g !== sonGun) { $("akis").append(el("div", "gun", g)); sonGun = g; }
+  const santral = o.topic === K.telefon && String(o.title || "").startsWith("Santral");
+  const ben = o.topic === K.telefon && !santral;
+  const b = el("div", "balon " + (ben ? "ben" : santral ? "santral" : "claude"));
+  const ust = el("div", "ust", saat(o.time) + (santral ? " · santral" : ben ? " · sen" : ""));
+  b.append(ust);
+  if (!ben && !santral && o.title) b.append(el("div", "baslik", o.title));
+  b.append(document.createTextNode(o.message || ""));
+  $("akis").append(b);
+}
+async function sohbetYukle() {
+  try {
+    const m = await oku(`${K.bildirim},${K.telefon}`);
+    baglantiDurum(true);
+    m.sort((a, b) => a.time - b.time).forEach(balon);
+    if (!m.length && !$("akis").children.length) $("akis").append(el("div", "bilgi", "Son 24 saatte ileti yok."));
+  } catch (e) { baglantiDurum(false); }
+}
+function hedefCiz() {
+  const h = $("hedefler"); h.replaceChildren();
+  for (const ad of ["hepsi", ...oturumlar.map((o) => o.ad)]) {
+    const b = el("button", "", ad);
+    b.onclick = () => { const i = $("sohbetMesaj"); i.value = `${ad}: ` + i.value.replace(/^[^:]{1,60}:\s*/, ""); i.focus(); };
+    h.append(b);
+  }
+}
+async function sohbetGonder() {
+  const i = $("sohbetMesaj"), m = i.value.trim();
+  if (!m) return;
+  $("sohbetGonder").disabled = true;
+  try { await yayinla(K.telefon, m); i.value = ""; setTimeout(sohbetYukle, 800); }
+  catch (e) { alert("Gönderilemedi: " + e.message); }
+  $("sohbetGonder").disabled = false;
+}
+$("sohbetGonder").onclick = sohbetGonder;
+$("sohbetMesaj").onkeydown = (e) => { if (e.key === "Enter") sohbetGonder(); };
+
+// Canlı akış (sayfa açıkken): EventSource; koparsa tarayıcı kendisi yeniden bağlanır.
+let es;
+function canli() {
+  if (es || !("EventSource" in window)) return;
+  es = new EventSource(`${NTFY}/${K.bildirim},${K.telefon},${K.durum}/sse`);
+  es.onopen = () => baglantiDurum(true);
+  es.onerror = () => baglantiDurum(false);
+  es.onmessage = (ev) => {
+    let o; try { o = JSON.parse(ev.data); } catch { return; }
+    if (o.event !== "message") return;
+    if (o.topic === K.durum) { durumYukle(); return; }
+    balon(o);
+    if (!$("sohbet").classList.contains("gizli")) window.scrollTo(0, document.body.scrollHeight);
+  };
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { es?.close(); es = null; }
+  else { canli(); durumYukle(); if (!$("sohbet").classList.contains("gizli")) sohbetYukle(); }
+});
+
+// ---------- soru sayfası: #soru?k=KOD&s=soru&o=A&o=B&m=1&b=başlık ----------
+let soru = null;
+function soruAc() {
+  const h = location.hash;
+  if (!h.startsWith("#soru")) { $("sekmeler").querySelector('[data-sekme="soru"]').classList.add("gizli"); return false; }
+  const q = new URLSearchParams(h.replace(/^#soru\??/, ""));
+  soru = { kod: q.get("k") || "", metin: q.get("s") || "Soru", secenekler: q.getAll("o"), coklu: q.get("m") === "1", baslik: q.get("b") || "" };
+  const secili = new Set();
+  $("soruBaslik").textContent = soru.baslik;
+  $("soruMetin").textContent = soru.metin;
+  $("soruIpucu").textContent = soru.coklu ? "Birden çok seçebilirsin, sonra Gönder." : "Birine dokun ya da kendin yaz.";
+  $("soruSonuc").replaceChildren();
+  const kap = $("soruSecenekler"); kap.replaceChildren();
+  for (const s of soru.secenekler) {
+    const b = el("button", "", s);
+    b.onclick = () => {
+      if (soru.coklu) { secili.has(s) ? secili.delete(s) : secili.add(s); b.classList.toggle("secili", secili.has(s)); }
+      else soruCevapla(s);
+    };
+    kap.append(b);
+  }
+  $("soruGonder").onclick = () => {
+    const serbest = $("soruSerbest").value.trim();
+    const c = serbest || (soru.coklu ? soru.secenekler.filter((s) => secili.has(s)).join(", ") : "");
+    if (c) soruCevapla(c);
+  };
+  if (!/^[0-9a-z]{4,12}$/i.test(soru.kod)) $("soruSonuc").replaceChildren(el("div", "hata", "Bağlantıda soru kodu yok; cevap eşleşmez."));
+  const t = $("sekmeler").querySelector('[data-sekme="soru"]'); t.classList.remove("gizli");
+  sekmeAc("soru");
+  return true;
+}
+async function soruCevapla(c) {
+  for (const b of document.querySelectorAll("#soru button")) b.disabled = true;
+  try {
+    await yayinla(K.cevap, `${soru.kod}: ${c}`);
+    $("soruSonuc").replaceChildren(el("div", "tamam", `Gönderildi ✓  ${c}`));
+  } catch (e) {
+    $("soruSonuc").replaceChildren(el("div", "hata", "Gönderilemedi: " + e.message));
+    for (const b of document.querySelectorAll("#soru button")) b.disabled = false;
+  }
+}
+window.addEventListener("hashchange", soruAc);
+
+$("yenile").onclick = () => { durumYukle(); sohbetYukle(); };
+if (!soruAc()) sekmeAc("oturumlar");
+else durumYukle();
+canli();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
