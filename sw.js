@@ -1,5 +1,5 @@
 // Basit service worker: uygulama kabuğu önbellekte (çevrimdışı açılır), ntfy istekleri hiç önbelleğe alınmaz.
-const SURUM = "zepul-telefon-v5";
+const SURUM = "zepul-telefon-v6";
 const KABUK = ["./", "index.html", "manifest.webmanifest", "ikon.svg", "ikon-192.png", "ikon-512.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(SURUM).then((c) => c.addAll(KABUK))); self.skipWaiting(); });
 self.addEventListener("activate", (e) => {
