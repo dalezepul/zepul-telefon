@@ -215,7 +215,8 @@ function limitCiz(l, tav) {
   if (tav && Array.isArray(tav.n) && tav.n.length) k.append(tavanGrafik(tav));
 }
 
-// ---------- tavan grafiği (santral: durum iletisi → tavan {ortak, gerekce, kaynak, guven, zaman, n:[[unix saat, kullanım, ortak, başkaları]]}) ----------
+// ---------- tavan grafiği (santral: durum iletisi → tavan {ortak, hedef, gerekce, kaynak, guven, zaman, n:[[unix saat, kullanım, ortak (uygulanan), başkaları, hedef]]}) ----------
+// hedef: modelin arka plan hedefi (uygulanan kademeli çıkar); yalnız silik ince çizgi + ipucu/tablo, kartın değeri uygulanan.
 const SVGNS = "http://www.w3.org/2000/svg";
 const svgEl = (ad, oz) => { const e = document.createElementNS(SVGNS, ad); for (const [k, v] of Object.entries(oz)) e.setAttribute(k, v); return e; };
 const gunSaat = (sa) => { const d = new Date(sa * 3600e3); return d.toLocaleDateString("tr-TR", { weekday: "short" }) + " " + d.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }); };
@@ -256,6 +257,8 @@ function tavanGrafik(t) {
     }
     return d;
   };
+  const hd = yol(4, true); // hedef: silik, ince, kesik (lejantta yok; bitiş etiketi yok)
+  if (hd) svg.append(svgEl("path", { d: hd, fill: "none", stroke: "#9aa1b2", "stroke-width": 1, "stroke-opacity": 0.45, "stroke-dasharray": "1 3" }));
   const seriler = [[1, "var(--s1)", false, false], [2, "var(--s2)", true, false], [3, "var(--s3)", false, true]];
   for (const [i, renk, basamak, kesik] of seriler) {
     const d = yol(i, basamak); if (!d) continue;
@@ -276,16 +279,16 @@ function tavanGrafik(t) {
     const r = svg.getBoundingClientRect(), gx = ((ev.clientX - r.left) / r.width) * G;
     const p = n.reduce((a, b) => (Math.abs(X(b[0]) - gx) < Math.abs(X(a[0]) - gx) ? b : a));
     cizgi.setAttribute("x1", X(p[0])); cizgi.setAttribute("x2", X(p[0])); cizgi.setAttribute("visibility", "visible");
-    ipucu.textContent = gunSaat(p[0]) + " · kullanım %" + (p[1] ?? "?") + " · tavan %" + (p[2] ?? "?") + " · başkaları ~%" + (p[3] ?? "?");
+    ipucu.textContent = gunSaat(p[0]) + " · kullanım %" + (p[1] ?? "?") + " · tavan %" + (p[2] ?? "?") + " · başkaları ~%" + (p[3] ?? "?") + (p[4] != null && p[4] !== p[2] ? " · hedef %" + p[4] : "");
   };
   svg.addEventListener("pointermove", goster); svg.addEventListener("pointerdown", goster);
   svg.addEventListener("pointerleave", () => cizgi.setAttribute("visibility", "hidden"));
   kutu.append(svg, ipucu);
-  if (t.gerekce) kutu.append(el("div", "gerekce", "Son karar: " + t.gerekce));
+  if (t.gerekce) kutu.append(el("div", "gerekce", "Son karar: " + t.gerekce + (t.hedef != null && t.hedef !== t.ortak ? " · hedef %" + t.hedef + " (tavan kademeli çıkar)" : "")));
   const det = el("details"), tablo = el("table"), bt = el("tr");
-  for (const b of ["Zaman", "Kullanım", "Tavan", "Başkaları"]) bt.append(el("th", "", b));
+  for (const b of ["Zaman", "Kullanım", "Tavan", "Başkaları", "Hedef"]) bt.append(el("th", "", b));
   tablo.append(bt);
-  for (const p of [...n].reverse()) { const tr = el("tr"); tr.append(el("td", "", gunSaat(p[0])), ...[1, 2, 3].map((i) => el("td", "", p[i] == null ? "–" : "%" + p[i]))); tablo.append(tr); }
+  for (const p of [...n].reverse()) { const tr = el("tr"); tr.append(el("td", "", gunSaat(p[0])), ...[1, 2, 3, 4].map((i) => el("td", "", p[i] == null ? "–" : "%" + p[i]))); tablo.append(tr); }
   det.append(el("summary", "", "Tablo"), tablo); kutu.append(det);
   return kutu;
 }
